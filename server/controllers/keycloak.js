@@ -27,6 +27,7 @@ const configValidation = () => {
     KEYCLOAK_STRAPI_SUPER_ADMIN_ROLE: config.KEYCLOAK_STRAPI_SUPER_ADMIN_ROLE || 'strapi.super-admin',
     KEYCLOAK_STRAPI_EDITOR_ROLE: config.KEYCLOAK_STRAPI_EDITOR_ROLE || 'strapi.editor',
     KEYCLOAK_STRAPI_AUTHOR_ROLE: config.KEYCLOAK_STRAPI_AUTHOR_ROLE || 'strapi.author',
+    KEYCLOAK_REQUIRE_EMAIL_VERIFICATION: config.KEYCLOAK_REQUIRE_EMAIL_VERIFICATION !== undefined ? config.KEYCLOAK_REQUIRE_EMAIL_VERIFICATION : true,
   };
 };
 
@@ -86,13 +87,14 @@ async function keycloakSignInCallback(ctx) {
     });
     const userInfoEndpoint = `${KEYCLOAK_DOMAIN}/${OAUTH_USER_INFO_ENDPOINT}?access_token=${response.data.access_token}`;
     const userResponse = await httpClient.post(userInfoEndpoint, {}, { headers: { authorization: `Bearer ${response.data.access_token}` } });
+    console.log(userResponse);
 
     const email = userResponse.data.email;
 
     if (
-      !userResponse.data.roles?.includes(KEYCLOAK_STRAPI_SUPER_ADMIN_ROLE) &&
-      !userResponse.data.roles?.includes(KEYCLOAK_STRAPI_EDITOR_ROLE) &&
-      !userResponse.data.roles?.includes(KEYCLOAK_STRAPI_AUTHOR_ROLE)
+      !userResponse.data.client_roles?.includes(KEYCLOAK_STRAPI_SUPER_ADMIN_ROLE) &&
+      !userResponse.data.client_roles?.includes(KEYCLOAK_STRAPI_EDITOR_ROLE) &&
+      !userResponse.data.client_roles?.includes(KEYCLOAK_STRAPI_AUTHOR_ROLE)
     ) {
       return ctx.send(oauthService.renderSignUpError(`You are not allowed to access this site`));
     }
@@ -107,23 +109,23 @@ async function keycloakSignInCallback(ctx) {
       activateUser = dbUser;
       jwtToken = await tokenService.createJwtToken(dbUser);
     } else {
-      const isEmailVerified = userResponse.data.email_verified;
-      if (!isEmailVerified) {
+      if (KEYCLOAK_REQUIRE_EMAIL_VERIFICATION && !userResponse.data.email_verified) {
         return ctx.send(oauthService.renderSignUpError(`Email ${email} is not verified`));
       }
+
       // Register a new account
       const keycloakRoles = await roleService.keycloakRoles();
 
       const roles = (
         keycloakRoles && keycloakRoles['roles']
           ? keycloakRoles['roles'].map((role) => {
-              if (role === 1 && !userResponse.data.roles?.includes(KEYCLOAK_STRAPI_SUPER_ADMIN_ROLE)) {
+              if (role === 1 && !userResponse.data.client_roles?.includes(KEYCLOAK_STRAPI_SUPER_ADMIN_ROLE)) {
                 return null;
               }
-              if (role === 2 && !userResponse.data.roles?.includes(KEYCLOAK_STRAPI_EDITOR_ROLE)) {
+              if (role === 2 && !userResponse.data.client_roles?.includes(KEYCLOAK_STRAPI_EDITOR_ROLE)) {
                 return null;
               }
-              if (role === 3 && !userResponse.data.roles?.includes(KEYCLOAK_STRAPI_AUTHOR_ROLE)) {
+              if (role === 3 && !userResponse.data.client_roles?.includes(KEYCLOAK_STRAPI_AUTHOR_ROLE)) {
                 return null;
               }
               return {

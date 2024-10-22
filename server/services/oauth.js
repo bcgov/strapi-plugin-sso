@@ -3,13 +3,13 @@ const strapiUtils = require('@strapi/utils');
 const generator = require('generate-password');
 
 module.exports = ({ strapi }) => ({
-  async createUser(email, lastname, firstname, locale, roles = []) {
+  async createUser(email, lastname, firstname, roles = []) {
     const createdUser = await getService('user').create({
       firstname: firstname ? firstname : 'unset',
       lastname: lastname ? lastname : '',
       email,
       roles,
-      preferedLanguage: locale,
+      preferedLanguage: 'en',
     });
 
     return await getService('user').register({
@@ -27,9 +27,6 @@ module.exports = ({ strapi }) => ({
         }),
       },
     });
-  },
-  localeFindByHeader(headers) {
-    return headers['accept-language'] || 'en';
   },
   async triggerWebHook(user) {
     const { ENTRY_CREATE } = strapiUtils.webhook.webhookEvents;

@@ -88,7 +88,6 @@ async function keycloakSignInCallback(ctx) {
     });
     const userInfoEndpoint = `${KEYCLOAK_DOMAIN}/${OAUTH_USER_INFO_ENDPOINT}?access_token=${response.data.access_token}`;
     const userResponse = await httpClient.post(userInfoEndpoint, {}, { headers: { authorization: `Bearer ${response.data.access_token}` } });
-    console.log(userResponse);
 
     const email = userResponse.data.email;
 
@@ -136,8 +135,7 @@ async function keycloakSignInCallback(ctx) {
           : []
       ).filter(Boolean);
 
-      const defaultLocale = oauthService.localeFindByHeader(ctx.request.headers);
-      activateUser = await oauthService.createUser(email, userResponse.data.family_name, userResponse.data.given_name, defaultLocale, roles);
+      activateUser = await oauthService.createUser(email, userResponse.data.family_name, userResponse.data.given_name, roles);
       jwtToken = await tokenService.createJwtToken(activateUser);
 
       // Trigger webhook

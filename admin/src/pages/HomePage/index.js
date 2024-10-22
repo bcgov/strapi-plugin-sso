@@ -42,13 +42,23 @@ const HomePage = () => {
   const [showSuccess, setSuccess] = useState(false);
   const [showError, setError] = useState(false);
 
-  useEffect(async () => {
-    const ssoRoleResponse = await axios.get(`/strapi-plugin-sso/sso-roles`);
-    setSSORoles(ssoRoleResponse.data);
+  useEffect(() => {
+    const fetchSSORoles = async () => {
+      const ssoRoleResponse = await axios.get(`/strapi-plugin-sso/sso-roles`);
+      setSSORoles(ssoRoleResponse.data);
+    };
 
-    const roleResponse = await axios.get(`/admin/roles`);
-    setRoles(roleResponse.data.data);
-  }, [setSSORoles, setRoles]);
+    fetchSSORoles();
+  }, [setSSORoles]);
+
+  useEffect(() => {
+    const fetchRoles = async () => {
+      const roleResponse = await axios.get(`/admin/roles`);
+      setRoles(roleResponse.data.data);
+    };
+
+    fetchRoles();
+  }, [setRoles]);
 
   const onChangeCheck = (value, ssoId, role) => {
     for (const ssoRole of ssoRoles) {
